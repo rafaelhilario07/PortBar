@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Porto Bar">
+<meta name="theme-color" content="#111111">
+<title>Porto Bar</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;}
+:root{
+  --bg:#111111;--bg2:#1c1c1c;--bg3:#272727;
+  --gold:#c9a84c;--gold2:#e8c97a;
+  --gf:rgba(201,168,76,.15);--gb:rgba(201,168,76,.30);
+  --txt:#f0ece4;--txt2:#9a9690;--txt3:#555250;
+  --bdr:rgba(255,255,255,.09);
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'DM Sans',-apple-system,sans-serif;
+  --pt:env(safe-area-inset-top,0px);
+  --pb:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;height:100dvh;background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:16px;overflow:hidden;position:fixed;width:100%;}
+button,input,select,textarea{font-family:var(--sans);font-size:16px;color:var(--txt);}
+#app{position:relative;width:100%;height:100%;overflow:hidden;}
+
+/* ── SCREENS ── */
+.screen{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);will-change:transform;overflow:hidden;}
+.screen.active{transform:translateX(0);}
+.screen.behind{transform:translateX(-28%);}
+
+/* ── BAR ── */
+.bar{display:flex;align-items:center;gap:10px;padding:calc(var(--pt) + 16px) 16px 14px;background:var(--bg);border-bottom:1px solid var(--bdr);flex-shrink:0;}
+.bar-title{flex:1;font-family:var(--serif);font-size:20px;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.icon-btn{width:44px;height:44px;min-width:44px;border-radius:12px;background:var(--bg3);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.icon-btn:active{background:#333;}
+.icon-btn svg{width:20px;height:20px;stroke:var(--txt2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.add-btn{width:44px;height:44px;min-width:44px;border-radius:22px;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:28px;color:#1a1200;font-weight:300;line-height:1;padding-bottom:2px;}
+.add-btn:active{background:var(--gold2);}
+
+/* ── HOME ── */
+.home-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px calc(var(--pb)+24px);}
+.home-greeting{font-family:var(--serif);font-size:14px;font-style:italic;color:var(--txt3);margin-bottom:4px;}
+.home-headline{font-family:var(--serif);font-size:26px;font-weight:500;color:var(--txt);margin-bottom:20px;line-height:1.2;}
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* ── CATEGORY CARD ── */
+.cat-card{border-radius:18px;overflow:hidden;cursor:pointer;position:relative;aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:flex-end;padding:14px;border:1px solid var(--bdr);transition:transform .15s;}
+.cat-card:active{transform:scale(.97);}
+.cat-bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;}
+.cat-grad{position:absolute;inset:0;z-index:1;background:linear-gradient(to bottom,rgba(0,0,0,.1) 0%,rgba(0,0,0,.72) 100%);}
+.cat-icon{font-size:34px;margin-bottom:6px;position:relative;z-index:2;}
+.cat-name{font-family:var(--serif);font-size:15px;font-weight:500;color:#fff;position:relative;z-index:2;line-height:1.2;}
+.cat-count{font-size:12px;color:rgba(255,255,255,.55);position:relative;z-index:2;margin-top:2px;}
+.cat-accent{position:absolute;top:0;left:0;right:0;height:2.5px;z-index:3;border-radius:18px 18px 0 0;}
+
+/* botão editar flutua no canto do card */
+.cat-edit-btn{position:absolute;top:10px;right:10px;z-index:4;width:32px;height:32px;border-radius:8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.cat-edit-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+/* card "adicionar categoria" */
+.cat-add-card{border-radius:18px;border:1.5px dashed var(--bdr);cursor:pointer;aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;transition:all .15s;}
+.cat-add-card:active{background:var(--bg3);}
+.cat-add-card .plus{font-size:30px;color:var(--txt3);}
+.cat-add-card span{font-size:13px;color:var(--txt3);text-align:center;line-height:1.4;}
+
+/* ── SEARCH / LIST ── */
+.search-box{padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--bdr);flex-shrink:0;}
+.search-box input{width:100%;padding:11px 14px 11px 42px;background:var(--bg3);border:1px solid var(--bdr);border-radius:12px;color:var(--txt);font-size:16px;outline:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23555250' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:14px center;}
+.search-box input::placeholder{color:var(--txt3);}
+.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--pb)+20px);}
+.alpha-div{padding:12px 16px 4px;font-family:var(--serif);font-size:14px;font-style:italic;color:var(--gold);letter-spacing:.04em;}
+.drink-row{display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid var(--bdr);cursor:pointer;}
+.drink-row:active{background:var(--bg3);}
+.drink-thumb{width:54px;height:54px;min-width:54px;border-radius:14px;background:var(--bg3);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;}
+.drink-thumb img{width:100%;height:100%;object-fit:cover;}
+.drink-info{flex:1;min-width:0;}
+.drink-name{font-family:var(--serif);font-size:17px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.drink-sub{font-size:13px;color:var(--txt3);margin-top:3px;}
+.chev{color:var(--txt3);font-size:18px;flex-shrink:0;}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;gap:14px;text-align:center;}
+.empty .eicon{font-size:56px;}
+.empty p{font-size:15px;color:var(--txt3);line-height:1.6;}
+
+/* ── SIDEBAR ── */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.7);z-index:50;opacity:0;pointer-events:none;transition:opacity .25s;}
+.overlay.open{opacity:1;pointer-events:auto;}
+.sidebar{position:absolute;top:0;left:0;bottom:0;width:min(80vw,300px);background:var(--bg2);z-index:51;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .26s cubic-bezier(.4,0,.2,1);border-right:1px solid var(--bdr);}
+.sidebar.open{transform:translateX(0);}
+.sb-head{display:flex;align-items:center;gap:14px;padding:calc(var(--pt)+24px) 20px 20px;border-bottom:1px solid var(--bdr);}
+.sb-head img{width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.sb-brand{font-family:var(--serif);font-size:20px;color:var(--txt);}
+.sb-sub{font-size:12px;color:var(--txt3);margin-top:2px;}
+.sb-nav{padding:10px 0;flex:1;overflow-y:auto;}
+.nav-row{display:flex;align-items:center;gap:14px;padding:15px 20px;cursor:pointer;font-size:15px;color:var(--txt2);transition:all .15s;}
+.nav-row:active,.nav-row.on{color:var(--gold);background:var(--gf);}
+.nav-row svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.nav-sep{height:1px;background:var(--bdr);margin:6px 20px;}
+
+/* ── DETAIL ── */
+.hero{height:220px;min-height:220px;background:var(--bg3);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+.hero-emoji{font-size:80px;}
+.hero img.hphoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.hero-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,var(--bg) 100%);pointer-events:none;}
+.photo-lbl{position:absolute;bottom:12px;right:12px;display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.15);border-radius:10px;font-size:13px;color:var(--txt2);cursor:pointer;}
+.photo-lbl:active{background:rgba(0,0,0,.85);}
+.det-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 16px calc(var(--pb)+24px);}
+.det-name{font-family:var(--serif);font-size:26px;color:var(--txt);line-height:1.2;}
+.det-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.method-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;background:var(--gf);border:1px solid var(--gb);border-radius:20px;font-size:13px;color:var(--gold);font-weight:500;}
+.cat-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(255,255,255,.05);border:1px solid var(--bdr);border-radius:20px;font-size:13px;color:var(--txt2);}
+.sec-ttl{font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--txt3);margin:22px 0 10px;}
+.ing-card{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border-radius:12px;border:1px solid var(--bdr);margin-bottom:8px;}
+.ing-qty{font-size:13px;font-weight:500;color:var(--gold);min-width:60px;flex-shrink:0;}
+.ing-name{font-size:15px;color:var(--txt);}
+.notes-card{padding:14px 16px;background:var(--bg2);border-radius:12px;border-left:3px solid var(--gold);font-size:14px;color:var(--txt2);line-height:1.65;}
+.del-row{margin-top:24px;padding:14px 16px;background:rgba(180,40,40,.1);border:1px solid rgba(180,40,40,.25);border-radius:12px;text-align:center;font-size:15px;color:#e07070;cursor:pointer;}
+.del-row:active{background:rgba(180,40,40,.2);}
+
+/* ── ADD DRINK ── */
+.add-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px calc(var(--pb)+90px);}
+.flabel{display:block;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--txt3);margin-bottom:10px;}
+.finput{width:100%;padding:13px 14px;background:var(--bg3);border:1px solid var(--bdr);border-radius:12px;color:var(--txt);font-size:16px;outline:none;-webkit-appearance:none;}
+.finput:focus{border-color:var(--gb);}
+.finput::placeholder{color:var(--txt3);}
+textarea.finput{resize:none;line-height:1.55;}
+.fgroup{margin-bottom:22px;}
+.chips{display:flex;flex-wrap:wrap;gap:9px;}
+.chip{padding:9px 18px;border-radius:22px;border:1px solid var(--bdr);background:var(--bg3);color:var(--txt2);font-size:14px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.chip.on{background:var(--gf);border-color:var(--gb);color:var(--gold);font-weight:500;}
+.ing-row-wrap{display:flex;gap:8px;align-items:stretch;margin-bottom:10px;}
+.ing-row-wrap .finput{flex:1;min-width:0;}
+.qty-f{width:70px!important;min-width:70px!important;flex:none!important;text-align:center;}
+.unit-sel{padding:13px 8px;background:var(--bg3);border:1px solid var(--bdr);border-radius:12px;color:var(--txt2);font-size:14px;outline:none;cursor:pointer;-webkit-appearance:none;min-width:56px;}
+.plus-r{width:48px;min-width:48px;height:48px;border-radius:24px;background:var(--gold);border:none;font-size:26px;color:#1a1200;cursor:pointer;display:flex;align-items:center;justify-content:center;align-self:center;padding-bottom:2px;}
+.plus-r:active{background:var(--gold2);}
+.ing-added{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--bg2);border-radius:10px;border:1px solid var(--bdr);margin-bottom:7px;}
+.iadd-qty{font-size:12px;font-weight:500;color:var(--gold);min-width:56px;flex-shrink:0;}
+.iadd-name{flex:1;font-size:14px;color:var(--txt);}
+.idel{width:32px;height:32px;border:none;background:none;color:var(--txt3);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.save-row{position:absolute;bottom:0;left:0;right:0;padding:12px 16px calc(var(--pb)+12px);background:var(--bg);border-top:1px solid var(--bdr);}
+.save-btn{width:100%;padding:16px;background:var(--gold);border:none;border-radius:14px;font-family:var(--serif);font-size:17px;font-weight:500;color:#1a1200;cursor:pointer;letter-spacing:.02em;}
+.save-btn:active{background:var(--gold2);}
+
+/* ── CATEGORY MANAGER ── */
+.cat-mgr-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(var(--pb)+20px);}
+.cat-mgr-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border-radius:14px;border:1px solid var(--bdr);margin-bottom:10px;}
+.cat-mgr-thumb{width:46px;height:46px;min-width:46px;border-radius:12px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;flex-shrink:0;position:relative;}
+.cat-mgr-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.cat-mgr-info{flex:1;min-width:0;}
+.cat-mgr-name{font-size:15px;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-mgr-sub{font-size:12px;color:var(--txt3);margin-top:2px;}
+.cat-mgr-actions{display:flex;gap:8px;flex-shrink:0;}
+.mgr-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--bdr);background:var(--bg3);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.mgr-btn:active{background:#333;}
+.mgr-btn svg{width:16px;height:16px;stroke:var(--txt2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.mgr-btn.danger{border-color:rgba(180,40,40,.3);}
+.mgr-btn.danger svg{stroke:#e07070;}
+.new-cat-btn{width:100%;padding:15px;background:var(--gf);border:1.5px dashed var(--gb);border-radius:14px;font-family:var(--serif);font-size:16px;color:var(--gold);cursor:pointer;margin-top:4px;letter-spacing:.02em;}
+.new-cat-btn:active{background:rgba(201,168,76,.25);}
+
+/* ── CONFIGS ── */
+.cfg-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px calc(var(--pb)+20px);}
+.cfg-lbl{font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--txt3);padding:0 4px 10px;}
+.cfg-card{background:var(--bg2);border-radius:16px;border:1px solid var(--bdr);overflow:hidden;margin-bottom:24px;}
+.cfg-row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-bottom:1px solid var(--bdr);cursor:pointer;}
+.cfg-row:last-child{border-bottom:none;}
+.cfg-row:active{background:var(--bg3);}
+.cfg-ico{width:38px;height:38px;min-width:38px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;}
+.cfg-ico svg{width:18px;height:18px;stroke:var(--gold);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.cfg-txt{flex:1;min-width:0;}
+.cfg-title{font-size:15px;color:var(--txt);font-weight:500;}
+.cfg-sub{font-size:13px;color:var(--txt3);margin-top:2px;}
+.cfg-badge{font-size:12px;color:var(--txt3);background:var(--bg3);padding:3px 10px;border-radius:10px;border:1px solid var(--bdr);flex-shrink:0;}
+.cfg-arr{color:var(--txt3);font-size:18px;flex-shrink:0;}
+
+/* ── MODAL (bottom sheet genérico) ── */
+.modal-bg{position:absolute;inset:0;background:rgba(0,0,0,.72);z-index:60;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;}
+.modal-bg.open{opacity:1;pointer-events:auto;}
+.modal-sheet{background:var(--bg2);border-radius:20px 20px 0 0;border-top:1px solid var(--bdr);padding-bottom:calc(var(--pb)+16px);max-height:90dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);}
+.modal-bg.open .modal-sheet{transform:translateY(0);}
+.modal-handle{width:40px;height:4px;background:var(--bg3);border-radius:2px;margin:12px auto 16px;flex-shrink:0;}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:0 20px 14px;border-bottom:1px solid var(--bdr);flex-shrink:0;}
+.modal-ttl{font-family:var(--serif);font-size:19px;color:var(--txt);}
+.modal-close{width:32px;height:32px;border:none;background:var(--bg3);border-radius:8px;color:var(--txt3);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 20px 0;}
+.modal-add{display:flex;gap:10px;padding:14px 20px 0;flex-shrink:0;}
+.modal-add .finput{flex:1;}
+.madd-btn{width:48px;min-width:48px;height:48px;border-radius:24px;background:var(--gold);border:none;font-size:26px;color:#1a1200;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:2px;}
+.madd-btn:active{background:var(--gold2);}
+.meth-row{display:flex;align-items:center;gap:10px;padding:13px 14px;background:var(--bg3);border-radius:12px;border:1px solid var(--bdr);margin-bottom:8px;}
+.meth-row span{flex:1;font-size:15px;color:var(--txt);}
+.meth-del{width:36px;height:36px;border:none;background:rgba(180,40,40,.15);border-radius:8px;color:#e07070;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* ── CATEGORY EDITOR (modal interno) ── */
+.cat-editor-body{padding:16px 20px 0;display:flex;flex-direction:column;gap:16px;}
+.cat-preview-card{width:100%;height:140px;border-radius:16px;overflow:hidden;position:relative;display:flex;align-items:flex-end;padding:14px;background:var(--bg3);border:1px solid var(--bdr);}
+.cat-preview-bg{position:absolute;inset:0;background-size:cover;background-position:center;}
+.cat-preview-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.1),rgba(0,0,0,.7));}
+.cat-preview-name{font-family:var(--serif);font-size:18px;color:#fff;position:relative;z-index:2;}
+.cat-preview-emoji{font-size:28px;position:relative;z-index:2;margin-bottom:4px;}
+
+.editor-row{display:flex;gap:10px;align-items:center;}
+.emoji-picker{display:flex;flex-wrap:wrap;gap:8px;}
+.ep-btn{width:42px;height:42px;border-radius:10px;background:var(--bg3);border:1px solid var(--bdr);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.ep-btn.on{border-color:var(--gb);background:var(--gf);}
+.color-picker{display:flex;flex-wrap:wrap;gap:8px;}
+.cp-btn{width:36px;height:36px;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:all .15s;}
+.cp-btn.on{border-color:var(--gold);transform:scale(1.1);}
+
+.img-upload-area{width:100%;padding:20px;background:var(--bg3);border:1.5px dashed var(--bdr);border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;}
+.img-upload-area:active{background:var(--bg2);}
+.img-upload-area svg{width:28px;height:28px;stroke:var(--txt3);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+.img-upload-area p{font-size:13px;color:var(--txt3);text-align:center;}
+.img-preview{width:100%;height:100px;border-radius:12px;object-fit:cover;border:1px solid var(--bdr);}
+.remove-img-btn{width:100%;padding:11px;background:rgba(180,40,40,.1);border:1px solid rgba(180,40,40,.25);border-radius:10px;font-size:13px;color:#e07070;cursor:pointer;text-align:center;margin-top:4px;}
+.remove-img-btn:active{background:rgba(180,40,40,.2);}
+.editor-save-btn{width:100%;padding:15px;background:var(--gold);border:none;border-radius:14px;font-family:var(--serif);font-size:16px;font-weight:500;color:#1a1200;cursor:pointer;margin-top:4px;}
+.editor-save-btn:active{background:var(--gold2);}
+
+/* ── SPLASH ── */
+#splash{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .5s ease .2s;}
+#splash.hide{opacity:0;pointer-events:none;}
+#splash img{width:110px;height:110px;border-radius:50%;}
+#splash .brand{font-family:var(--serif);font-size:34px;color:var(--txt);letter-spacing:.03em;}
+#splash .tag{font-size:13px;color:var(--txt3);letter-spacing:.15em;text-transform:uppercase;}
+#photo-file,#cat-img-file{display:none;}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <img src="icons/icon-192.png" alt="Porto Bar">
+  <div class="brand">Porto Bar</div>
+  <div class="tag">Barman</div>
+</div>
+
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <div class="overlay" id="sb-ov" onclick="closeSB()"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <img src="icons/icon-192.png" alt="">
+      <div><div class="sb-brand">Porto Bar</div><div class="sb-sub">Barman Pro</div></div>
+    </div>
+    <div class="sb-nav">
+      <div class="nav-row on" onclick="showScreen('home');closeSB()">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Categorias
+      </div>
+      <div class="nav-row" onclick="showScreen('catmgr');closeSB()">
+        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Gerenciar categorias
+      </div>
+      <div class="nav-row" onclick="showScreen('configs');closeSB()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Configurações
+      </div>
+      <div class="nav-sep"></div>
+      <div class="nav-row" onclick="openMethods();closeSB()">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Métodos de preparo
+      </div>
+      <div class="nav-row" onclick="showScreen('add');closeSB()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Novo drink
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ HOME ═══ -->
+  <div class="screen active" id="s-home">
+    <div class="bar">
+      <div class="icon-btn" onclick="openSB()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
+      </div>
+      <span class="bar-title">Porto Bar</span>
+      <div class="add-btn" onclick="showScreen('add')">+</div>
+    </div>
+    <div class="home-scroll">
+      <div class="home-greeting">Bem-vindo,</div>
+      <div class="home-headline">O que vamos<br>preparar hoje?</div>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+
+  <!-- ═══ CATEGORY LIST ═══ -->
+  <div class="screen" id="s-catlist">
+    <div class="bar">
+      <div class="icon-btn" onclick="goBack()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <span class="bar-title" id="cl-title"></span>
+      <div class="add-btn" onclick="showScreen('add')">+</div>
+    </div>
+    <div class="search-box">
+      <input type="search" id="cl-search" placeholder="Buscar..." oninput="filterCatList()" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="scroll-area" id="cl-list"></div>
+  </div>
+
+  <!-- ═══ DETAIL ═══ -->
+  <div class="screen" id="s-detail">
+    <div class="bar">
+      <div class="icon-btn" onclick="goBack()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <span class="bar-title" id="d-btitle"></span>
+    </div>
+    <div class="hero" id="d-hero">
+      <div class="hero-emoji" id="d-emoji"></div>
+      <div class="hero-grad"></div>
+      <label class="photo-lbl" for="photo-file">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Adicionar foto
+      </label>
+    </div>
+    <input type="file" id="photo-file" accept="image/*" onchange="attachPhoto(event)">
+    <div class="det-body">
+      <div class="det-name" id="d-name"></div>
+      <div class="det-tags">
+        <div class="method-tag" id="d-method"></div>
+        <div class="cat-tag" id="d-cattag"></div>
+      </div>
+      <div class="sec-ttl">Ingredientes</div>
+      <div id="d-ings"></div>
+      <div id="d-notes-wrap">
+        <div class="sec-ttl">Notas</div>
+        <div class="notes-card" id="d-notes"></div>
+      </div>
+      <div class="del-row" id="d-del">Remover drink</div>
+    </div>
+  </div>
+
+  <!-- ═══ ADD DRINK ═══ -->
+  <div class="screen" id="s-add">
+    <div class="bar">
+      <div class="icon-btn" onclick="goBack()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <span class="bar-title">Novo Drink</span>
+    </div>
+    <div class="add-body">
+      <div class="fgroup">
+        <label class="flabel">Nome</label>
+        <input class="finput" type="text" id="a-name" placeholder="Ex: Caipirinha" autocomplete="off">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Categoria</label>
+        <div class="chips" id="a-cats"></div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Método de preparo</label>
+        <div class="chips" id="a-methods"></div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Ingredientes</label>
+        <div class="ing-row-wrap">
+          <input class="finput" type="text" id="a-ing" placeholder="Ingrediente" list="ing-dl" autocomplete="off">
+          <datalist id="ing-dl"></datalist>
+          <input class="finput qty-f" type="text" id="a-qty" placeholder="Qtd">
+          <select class="unit-sel" id="a-unit">
+            <option>ml</option><option>cl</option><option>oz</option>
+            <option>dash</option><option>folha</option><option>un</option><option>g</option><option>col</option>
+          </select>
+          <div class="plus-r" onclick="addIng()">+</div>
+        </div>
+        <div id="a-ing-list"></div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Notas / Dicas (opcional)</label>
+        <textarea class="finput" id="a-notes" rows="3" placeholder="Observações, variações, dicas..."></textarea>
+      </div>
+    </div>
+    <div class="save-row">
+      <button class="save-btn" onclick="saveDrink()">Salvar Drink</button>
+    </div>
+  </div>
+
+  <!-- ═══ CATEGORY MANAGER ═══ -->
+  <div class="screen" id="s-catmgr">
+    <div class="bar">
+      <div class="icon-btn" onclick="goBack()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <span class="bar-title">Categorias</span>
+      <div class="icon-btn" onclick="openSB()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
+      </div>
+    </div>
+    <div class="cat-mgr-scroll">
+      <div id="cat-mgr-list"></div>
+      <button class="new-cat-btn" onclick="openCatEditor(null)">+ Nova Categoria</button>
+    </div>
+  </div>
+
+  <!-- ═══ CONFIGS ═══ -->
+  <div class="screen" id="s-configs">
+    <div class="bar">
+      <div class="icon-btn" onclick="goBack()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <span class="bar-title">Configurações</span>
+      <div class="icon-btn" onclick="openSB()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
+      </div>
+    </div>
+    <div class="cfg-body">
+      <div class="cfg-lbl">Cardápio</div>
+      <div class="cfg-card" id="cfg-summary"></div>
+      <div class="cfg-lbl">Pré-configurações</div>
+      <div class="cfg-card">
+        <div class="cfg-row" onclick="openMethods()">
+          <div class="cfg-ico"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+          <div class="cfg-txt"><div class="cfg-title">Métodos de preparo</div><div class="cfg-sub">Coqueteleira, liquidificador...</div></div>
+          <span class="cfg-badge" id="cfg-m">0</span><span class="cfg-arr">›</span>
+        </div>
+        <div class="cfg-row" onclick="showScreen('catmgr')">
+          <div class="cfg-ico"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+          <div class="cfg-txt"><div class="cfg-title">Gerenciar categorias</div><div class="cfg-sub">Criar, editar, personalizar</div></div>
+          <span class="cfg-badge" id="cfg-cats">0</span><span class="cfg-arr">›</span>
+        </div>
+      </div>
+      <div class="cfg-lbl">Dados</div>
+      <div class="cfg-card">
+        <div class="cfg-row" onclick="exportJSON()">
+          <div class="cfg-ico"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+          <div class="cfg-txt"><div class="cfg-title">Exportar cardápio</div><div class="cfg-sub">Baixar dados em JSON</div></div>
+          <span class="cfg-arr">›</span>
+        </div>
+        <div class="cfg-row" onclick="clearAll()">
+          <div class="cfg-ico"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>
+          <div class="cfg-txt"><div class="cfg-title">Limpar todos os dados</div><div class="cfg-sub">Remove todos os drinks</div></div>
+          <span class="cfg-arr">›</span>
+        </div>
+      </div>
+      <div style="text-align:center;padding:16px 0;font-size:12px;color:var(--txt3);">Porto Bar v2.1 · Barman Pro</div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: MÉTODOS ═══ -->
+  <div class="modal-bg" id="m-modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-head">
+        <div class="modal-ttl">Métodos de preparo</div>
+        <button class="modal-close" onclick="document.getElementById('m-modal').classList.remove('open')">×</button>
+      </div>
+      <div class="modal-scroll" id="m-list"></div>
+      <div class="modal-add">
+        <input class="finput" type="text" id="new-meth" placeholder="Novo método..." autocomplete="off">
+        <div class="madd-btn" onclick="addMethod()">+</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: CATEGORY EDITOR ═══ -->
+  <div class="modal-bg" id="cat-editor-modal" onclick="if(event.target===this)closeCatEditor()">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-head">
+        <div class="modal-ttl" id="ced-title">Nova Categoria</div>
+        <button class="modal-close" onclick="closeCatEditor()">×</button>
+      </div>
+      <div class="modal-scroll">
+        <div class="cat-editor-body">
+
+          <!-- preview -->
+          <div class="cat-preview-card" id="ced-preview">
+            <div class="cat-preview-bg" id="ced-prev-bg"></div>
+            <div class="cat-preview-grad"></div>
+            <div style="position:relative;z-index:2;">
+              <div class="cat-preview-emoji" id="ced-prev-emoji">🍹</div>
+              <div class="cat-preview-name" id="ced-prev-name">Nome da categoria</div>
+            </div>
+          </div>
+
+          <!-- nome -->
+          <div class="fgroup" style="margin-bottom:0;">
+            <label class="flabel">Nome da categoria</label>
+            <input class="finput" type="text" id="ced-name" placeholder="Ex: Petiscos" autocomplete="off"
+              oninput="document.getElementById('ced-prev-name').textContent=this.value||'Nome da categoria'">
+          </div>
+
+          <!-- emoji -->
+          <div>
+            <label class="flabel">Ícone</label>
+            <div class="emoji-picker" id="ced-emojis"></div>
+          </div>
+
+          <!-- cor de fundo (quando não há imagem) -->
+          <div>
+            <label class="flabel">Cor de fundo</label>
+            <div class="color-picker" id="ced-colors"></div>
+          </div>
+
+          <!-- imagem de fundo -->
+          <div>
+            <label class="flabel">Imagem de fundo (opcional)</label>
+            <div id="ced-img-wrap">
+              <label class="img-upload-area" for="cat-img-file" id="ced-upload-lbl">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <p>Toque para escolher uma foto<br><span style="font-size:11px;color:var(--txt3);">A imagem substitui a cor de fundo</span></p>
+              </label>
+            </div>
+          </div>
+
+          <button class="editor-save-btn" onclick="saveCatEditor()">Salvar Categoria</button>
+          <div style="height:8px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="cat-img-file" accept="image/*" onchange="handleCatImage(event)">
+
+</div><!-- #app -->
+
+<script>
+/* ════════════ DEFAULTS ════════════ */
+const CAT_EMOJIS = ['🍸','🥤','🍮','🍊','🍺','🍷','🥂','☕','🧃','🍹','🥃','🍵','🍶','🫖','🧋','🍫','🍰','🎂','🥗','🍱','🥘','🫕','🍕','🥪','🍣','🍤','🍡'];
+const CAT_COLORS = [
+  {bg:'linear-gradient(135deg,#1a0a00,#3d1a00)', accent:'#c9a84c'},
+  {bg:'linear-gradient(135deg,#001a0d,#003d1a)', accent:'#4caf82'},
+  {bg:'linear-gradient(135deg,#1a0010,#3d0030)', accent:'#c97ab0'},
+  {bg:'linear-gradient(135deg,#1a1000,#3d2800)', accent:'#e8a020'},
+  {bg:'linear-gradient(135deg,#00101a,#00243d)', accent:'#4c8fcf'},
+  {bg:'linear-gradient(135deg,#0a001a,#20003d)', accent:'#9c6fdf'},
+  {bg:'linear-gradient(135deg,#1a0000,#3d0000)', accent:'#e07070'},
+  {bg:'linear-gradient(135deg,#0a0a0a,#282828)', accent:'#aaaaaa'},
+];
+
+const DEFAULT_CATS = [
+  {id:'alcool', name:'Drinks Alcoólicos', emoji:'🍸', color:0, image:null},
+  {id:'sem',    name:'Drinks Sem Álcool', emoji:'🥤', color:1, image:null},
+  {id:'sobre',  name:'Sobremesas',        emoji:'🍮', color:2, image:null},
+  {id:'sucos',  name:'Sucos & Vitaminas', emoji:'🍊', color:3, image:null},
+];
+
+const DEFAULT_DRINKS = [
+  {id:'d001',cat:'alcool',name:'Aperol Spritz',method:'Montar no copo',emoji:'🍊',photo:null,ingredients:[['90ml','Prosecco'],['60ml','Aperol'],['30ml','Água com gás'],['1un','Fatia de laranja']],notes:'Servir em taça grande com bastante gelo.'},
+  {id:'d002',cat:'alcool',name:'Caipirinha',method:'Muddler + Gelo',emoji:'🍋',photo:null,ingredients:[['60ml','Cachaça'],['1un','Limão tahiti'],['2col','Açúcar refinado'],['Gelo','a gosto']],notes:'Macerar o limão com o açúcar antes de adicionar o gelo e a cachaça.'},
+  {id:'d003',cat:'alcool',name:'Caipirosca',method:'Muddler + Gelo',emoji:'🍋',photo:null,ingredients:[['60ml','Vodka'],['1un','Limão tahiti'],['2col','Açúcar refinado'],['Gelo','a gosto']],notes:null},
+  {id:'d004',cat:'alcool',name:'Cosmopolitan',method:'Coqueteleira',emoji:'🍸',photo:null,ingredients:[['45ml','Vodka citrus'],['15ml','Triple sec'],['30ml','Suco de cranberry'],['15ml','Suco de limão']],notes:null},
+  {id:'d005',cat:'alcool',name:'Daiquiri',method:'Coqueteleira',emoji:'🍓',photo:null,ingredients:[['60ml','Rum branco'],['30ml','Suco de limão'],['15ml','Xarope simples']],notes:'Coar na hora de servir. Servir sem gelo na taça.'},
+  {id:'d006',cat:'alcool',name:'Dry Martini',method:'Mexer no copo',emoji:'🫒',photo:null,ingredients:[['75ml','Gin London Dry'],['15ml','Vermute seco'],['1un','Azeitona ou casca de limão']],notes:'Mexer por 20 segundos com gelo. Nunca bater na coqueteleira.'},
+  {id:'d007',cat:'alcool',name:'Gin Tônica',method:'Montar no copo',emoji:'🫙',photo:null,ingredients:[['60ml','Gin'],['150ml','Água tônica premium'],['1un','Fatia de limão ou pepino'],['3un','Grão de pimenta rosa']],notes:null},
+  {id:'d008',cat:'alcool',name:'Long Island Iced Tea',method:'Coqueteleira',emoji:'🥤',photo:null,ingredients:[['20ml','Vodka'],['20ml','Rum branco'],['20ml','Gin'],['20ml','Tequila'],['20ml','Triple sec'],['30ml','Suco de limão'],['Splash','Cola']],notes:null},
+  {id:'d009',cat:'alcool',name:'Mojito',method:'Muddler + Mexer',emoji:'🌿',photo:null,ingredients:[['60ml','Rum branco'],['30ml','Suco de limão'],['15ml','Xarope simples'],['6un','Folhas de hortelã'],['Splash','Água com gás']],notes:'Macerar a hortelã levemente. Não picar as folhas para evitar amargor.'},
+  {id:'d010',cat:'alcool',name:'Negroni',method:'Mexer no copo',emoji:'🟠',photo:null,ingredients:[['30ml','Gin'],['30ml','Campari'],['30ml','Vermute doce']],notes:'Mexer com gelo por 30s. Decorar com casca de laranja.'},
+  {id:'d011',cat:'alcool',name:'Piña Colada',method:'Liquidificador',emoji:'🥥',photo:null,ingredients:[['60ml','Rum branco'],['90ml','Suco de abacaxi'],['60ml','Creme de coco'],['1xíc','Gelo picado']],notes:'Bater até ficar cremoso.'},
+  {id:'d012',cat:'alcool',name:'Tequila Sunrise',method:'Montar no copo',emoji:'🌅',photo:null,ingredients:[['60ml','Tequila'],['120ml','Suco de laranja'],['15ml','Grenadine']],notes:'Adicionar grenadine por último para criar o efeito degradê.'},
+  {id:'d013',cat:'alcool',name:'Whisky Sour',method:'Coqueteleira',emoji:'🥃',photo:null,ingredients:[['60ml','Bourbon'],['30ml','Suco de limão'],['15ml','Xarope simples'],['1un','Clara de ovo (opcional)']],notes:'Com clara: dry shake primeiro por 10s, depois com gelo.'},
+  {id:'d014',cat:'alcool',name:'Margarita',method:'Coqueteleira',emoji:'🧂',photo:null,ingredients:[['50ml','Tequila blanco'],['25ml','Triple sec'],['25ml','Suco de limão'],['Sal','para a borda']],notes:'Esfregar limão na borda do copo e passar no sal antes de servir.'},
+  {id:'d015',cat:'alcool',name:'Amaretto Sour',method:'Coqueteleira',emoji:'🍒',photo:null,ingredients:[['60ml','Amaretto'],['30ml','Suco de limão'],['15ml','Xarope simples'],['1un','Clara de ovo']],notes:null},
+  {id:'d016',cat:'alcool',name:'Sex on the Beach',method:'Coqueteleira',emoji:'🍑',photo:null,ingredients:[['45ml','Vodka'],['20ml','Licor de pêssego'],['60ml','Suco de laranja'],['60ml','Suco de cranberry']],notes:null},
+  {id:'d101',cat:'sem',name:'Água de Coco com Hortelã',method:'Montar no copo',emoji:'🌴',photo:null,ingredients:[['300ml','Água de coco gelada'],['6un','Folhas de hortelã'],['1un','Fatia de limão'],['Gelo','a gosto']],notes:null},
+  {id:'d102',cat:'sem',name:'Limonada Suíça',method:'Liquidificador',emoji:'🍋',photo:null,ingredients:[['4un','Limão tahiti com casca'],['400ml','Água gelada'],['3col','Leite condensado'],['1xíc','Gelo']],notes:'Bater por 30s. Coar e servir imediatamente.'},
+  {id:'d103',cat:'sem',name:'Limonada Tradicional',method:'Mexer no copo',emoji:'🍋',photo:null,ingredients:[['4un','Limão tahiti'],['500ml','Água gelada'],['4col','Açúcar'],['Gelo','a gosto']],notes:null},
+  {id:'d104',cat:'sem',name:'Mojito Virgin',method:'Muddler + Mexer',emoji:'🌿',photo:null,ingredients:[['30ml','Suco de limão'],['15ml','Xarope de hortelã'],['6un','Folhas de hortelã'],['Splash','Água com gás'],['Gelo','a gosto']],notes:null},
+  {id:'d105',cat:'sem',name:'Shirley Temple',method:'Montar no copo',emoji:'🍒',photo:null,ingredients:[['150ml','Ginger ale'],['30ml','Grenadine'],['1un','Cereja maraschino'],['1un','Fatia de laranja']],notes:null},
+  {id:'d106',cat:'sem',name:'Virgin Colada',method:'Liquidificador',emoji:'🥥',photo:null,ingredients:[['150ml','Suco de abacaxi'],['60ml','Creme de coco'],['1xíc','Gelo picado']],notes:'Bater até cremoso.'},
+  {id:'d107',cat:'sem',name:'Lemonade com Gengibre',method:'Mexer no copo',emoji:'🫚',photo:null,ingredients:[['200ml','Limonada natural'],['20ml','Xarope de gengibre'],['Splash','Água com gás'],['Gelo','a gosto']],notes:null},
+  {id:'d201',cat:'sobre',name:'Affogato',method:'Montar no copo',emoji:'☕',photo:null,ingredients:[['2 bolas','Sorvete de creme'],['1 dose','Espresso quente'],['1 dose','Amaretto (opcional)']],notes:'Despejar o espresso quente por cima do sorvete na hora de servir.'},
+  {id:'d202',cat:'sobre',name:'Brownie com Sorvete',method:'Montar no copo',emoji:'🍫',photo:null,ingredients:[['1 fatia','Brownie de chocolate'],['2 bolas','Sorvete de baunilha'],['2col','Calda de chocolate'],['Chantilly','a gosto']],notes:null},
+  {id:'d203',cat:'sobre',name:'Frappé de Café',method:'Liquidificador',emoji:'☕',photo:null,ingredients:[['2 doses','Espresso resfriado'],['3 bolas','Sorvete de creme'],['100ml','Leite'],['2col','Açúcar'],['Gelo','a gosto']],notes:null},
+  {id:'d204',cat:'sobre',name:'Milk Shake de Chocolate',method:'Liquidificador',emoji:'🍫',photo:null,ingredients:[['3 bolas','Sorvete de chocolate'],['100ml','Leite'],['2col','Chocolate em pó'],['Chantilly','para decorar']],notes:null},
+  {id:'d205',cat:'sobre',name:'Milk Shake de Morango',method:'Liquidificador',emoji:'🍓',photo:null,ingredients:[['200g','Morango fresco'],['3 bolas','Sorvete de morango'],['100ml','Leite integral'],['Chantilly','para decorar']],notes:'Bater até homogêneo. Servir com canudo largo.'},
+  {id:'d206',cat:'sobre',name:'Float de Limão',method:'Montar no copo',emoji:'🍋',photo:null,ingredients:[['200ml','Limonada suíça'],['2 bolas','Sorvete de limão'],['Chantilly','a gosto']],notes:null},
+  {id:'d207',cat:'sobre',name:'Vitamina de Banana',method:'Liquidificador',emoji:'🍌',photo:null,ingredients:[['2un','Banana madura'],['200ml','Leite integral'],['2col','Mel'],['1col','Canela em pó']],notes:null},
+  {id:'d301',cat:'sucos',name:'Suco de Laranja',method:'Centrifuga/Espremedor',emoji:'🍊',photo:null,ingredients:[['6un','Laranja pera'],['Gelo','a gosto']],notes:'Espremer na hora de servir para preservar a vitamina C.'},
+  {id:'d302',cat:'sucos',name:'Suco de Maracujá',method:'Liquidificador',emoji:'🌟',photo:null,ingredients:[['3un','Maracujá (polpa)'],['500ml','Água gelada'],['4col','Açúcar'],['Gelo','a gosto']],notes:null},
+  {id:'d303',cat:'sucos',name:'Suco de Melancia',method:'Liquidificador',emoji:'🍉',photo:null,ingredients:[['400g','Melancia sem semente'],['10ml','Suco de limão'],['Gelo','a gosto']],notes:'Não precisa adicionar água. Coar se preferir mais fino.'},
+  {id:'d304',cat:'sucos',name:'Suco Verde Detox',method:'Liquidificador',emoji:'🥬',photo:null,ingredients:[['2 folhas','Couve kale'],['1un','Maçã verde'],['1un','Pepino'],['1un','Limão (suco)'],['200ml','Água de coco']],notes:null},
+  {id:'d305',cat:'sucos',name:'Smoothie Tropical',method:'Liquidificador',emoji:'🌺',photo:null,ingredients:[['1 fatia','Abacaxi'],['1un','Manga'],['1un','Banana'],['200ml','Suco de laranja'],['Gelo','a gosto']],notes:null},
+  {id:'d306',cat:'sucos',name:'Vitamina de Abacate',method:'Liquidificador',emoji:'🥑',photo:null,ingredients:[['1/2','Abacate maduro'],['200ml','Leite'],['2col','Açúcar'],['Gelo','a gosto']],notes:null},
+  {id:'d307',cat:'sucos',name:'Suco de Cenoura e Laranja',method:'Centrifuga/Espremedor',emoji:'🥕',photo:null,ingredients:[['3un','Cenoura'],['3un','Laranja'],['1 pedaço','Gengibre (opcional)']],notes:null},
+];
+
+/* ════════════ DB ════════════ */
+const KEY = 'portobar6';
+let db = {drinks:[],methods:[],ings:[],cats:[]};
+function loadDB() {
+  try { db = JSON.parse(localStorage.getItem(KEY)) || db; } catch(e){}
+  if (!db.cats    || !db.cats.length)    db.cats    = DEFAULT_CATS.map(c=>({...c}));
+  if (!db.drinks  || !db.drinks.length)  db.drinks  = DEFAULT_DRINKS.map(d=>({...d}));
+  if (!db.methods || !db.methods.length) db.methods = ['Coqueteleira','Liquidificador','Mexer no copo','Muddler + Gelo','Montar no copo','Centrifuga/Espremedor','Muddler + Mexer'];
+  if (!db.ings    || !db.ings.length)    db.ings    = ['Cachaça','Rum branco','Rum escuro','Vodka','Gin','Tequila','Aperol','Campari','Amaretto','Triple sec','Vermute seco','Vermute doce','Prosecco','Limão tahiti','Suco de limão','Açúcar refinado','Xarope simples','Água tônica','Água com gás','Cola','Hortelã','Creme de coco','Suco de abacaxi','Gelo picado','Angostura','Espumante','Maracujá','Melancia','Abacate','Cenoura','Gengibre','Morango','Banana','Laranja','Leite integral','Leite condensado','Mel','Menta'];
+}
+function saveDB(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+loadDB();
+
+/* ════════════ NAVEGAÇÃO ════════════ */
+let current = 'home';
+let navHist = ['home'];
+function showScreen(id) {
+  if (id===current) return;
+  document.getElementById('s-'+current).classList.remove('active');
+  document.getElementById('s-'+current).classList.add('behind');
+  document.getElementById('s-'+id).classList.remove('behind');
+  document.getElementById('s-'+id).classList.add('active');
+  navHist.push(id);
+  current = id;
+  if (id==='add')    setupAdd();
+  if (id==='configs') updateCounts();
+  if (id==='home')   renderHome();
+  if (id==='catmgr') renderCatMgr();
+}
+function goBack() {
+  if (navHist.length<=1) return;
+  navHist.pop();
+  const prev = navHist[navHist.length-1];
+  const curEl  = document.getElementById('s-'+current);
+  const prevEl = document.getElementById('s-'+prev);
+  curEl.classList.remove('active');
+  curEl.style.transform='translateX(100%)';
+  setTimeout(()=>{curEl.style.transform='';},310);
+  prevEl.classList.remove('behind');
+  prevEl.classList.add('active');
+  current = prev;
+  if (prev==='home')   renderHome();
+  if (prev==='catlist') renderCatList();
+  if (prev==='catmgr') renderCatMgr();
+}
+
+/* ════════════ SIDEBAR ════════════ */
+function openSB()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sb-ov').classList.add('open'); }
+function closeSB() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sb-ov').classList.remove('open'); }
+
+/* ════════════ HELPERS para CARDS ════════════ */
+function catBgStyle(cat) {
+  if (cat.image) return `background-image:url('${cat.image}');background-size:cover;background-position:center;`;
+  const c = CAT_COLORS[cat.color ?? 0];
+  return `background:${c.bg};`;
+}
+function catAccentColor(cat) {
+  if (cat.image) return 'rgba(255,255,255,0.6)';
+  return (CAT_COLORS[cat.color??0]).accent;
+}
+
+/* ════════════ HOME ════════════ */
+function renderHome() {
+  const grid = document.getElementById('cat-grid');
+  let html = db.cats.map(c => {
+    const n = db.drinks.filter(d=>d.cat===c.id).length;
+    return `<div class="cat-card" onclick="openCat('${c.id}')">
+      <div class="cat-bg" style="${catBgStyle(c)}"></div>
+      <div class="cat-grad"></div>
+      <div class="cat-accent" style="background:linear-gradient(90deg,${catAccentColor(c)},transparent);"></div>
+      <div class="cat-edit-btn" onclick="event.stopPropagation();openCatEditor('${c.id}')">
+        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </div>
+      <div class="cat-icon">${c.emoji}</div>
+      <div class="cat-name">${c.name}</div>
+      <div class="cat-count">${n} item${n!==1?'s':''}</div>
+    </div>`;
+  }).join('');
+  html += `<div class="cat-add-card" onclick="openCatEditor(null)">
+    <div class="plus">+</div>
+    <span>Nova<br>categoria</span>
+  </div>`;
+  grid.innerHTML = html;
+}
+
+/* ════════════ CAT LIST ════════════ */
+let currentCat = null;
+function openCat(catId) {
+  currentCat = catId;
+  const c = db.cats.find(x=>x.id===catId);
+  document.getElementById('cl-title').textContent = (c?.emoji||'') + '  ' + (c?.name||'');
+  document.getElementById('cl-search').value = '';
+  showScreen('catlist');
+  renderCatList();
+}
+function renderCatList(filter) {
+  const q    = (filter||'').toLowerCase();
+  const all  = db.drinks.filter(d=>d.cat===currentCat);
+  const list = q ? all.filter(d=>d.name.toLowerCase().includes(q)) : all;
+  const el   = document.getElementById('cl-list');
+  if (!list.length) {
+    const c = db.cats.find(x=>x.id===currentCat);
+    el.innerHTML=`<div class="empty"><div class="eicon">${c?.emoji||'🍸'}</div>
+      <p>Nenhum item nesta categoria.<br>Toque no <strong style="color:var(--gold)">+</strong> para adicionar.</p></div>`;
+    return;
+  }
+  const sorted=[...list].sort((a,b)=>a.name.localeCompare(b.name,'pt'));
+  let html='',last='';
+  sorted.forEach(d=>{
+    const l=d.name[0].toUpperCase();
+    if(l!==last){html+=`<div class="alpha-div">${l}</div>`;last=l;}
+    html+=`<div class="drink-row" onclick="openDrink('${d.id}')">
+      <div class="drink-thumb">${d.photo?`<img src="${d.photo}" alt="">`:d.emoji||'🍹'}</div>
+      <div class="drink-info">
+        <div class="drink-name">${d.name}</div>
+        <div class="drink-sub">${d.method} · ${d.ingredients.length} ingrediente${d.ingredients.length!==1?'s':''}</div>
+      </div>
+      <span class="chev">›</span>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+function filterCatList(){ renderCatList(document.getElementById('cl-search').value); }
+
+/* ════════════ DETAIL ════════════ */
+let activeId=null;
+function openDrink(id) {
+  const d=db.drinks.find(x=>x.id===id); if(!d) return;
+  activeId=id;
+  document.getElementById('d-btitle').textContent=d.name;
+  document.getElementById('d-name').textContent=d.name;
+  document.getElementById('d-method').textContent='⚡ '+d.method;
+  const cat=db.cats.find(c=>c.id===d.cat);
+  document.getElementById('d-cattag').textContent=cat?cat.emoji+' '+cat.name:'';
+  const hero=document.getElementById('d-hero');
+  const emoji=document.getElementById('d-emoji');
+  hero.querySelectorAll('.hphoto').forEach(e=>e.remove());
+  if(d.photo){
+    emoji.style.display='none';
+    const img=document.createElement('img');img.src=d.photo;img.className='hphoto';
+    hero.insertBefore(img,hero.firstChild);
+  }else{emoji.style.display='block';emoji.textContent=d.emoji||'🍹';}
+  document.getElementById('d-ings').innerHTML=d.ingredients.map(([q,n])=>
+    `<div class="ing-card"><span class="ing-qty">${q}</span><span class="ing-name">${n}</span></div>`).join('');
+  const nw=document.getElementById('d-notes-wrap');
+  if(d.notes){nw.style.display='block';document.getElementById('d-notes').textContent=d.notes;}
+  else nw.style.display='none';
+  document.getElementById('d-del').onclick=()=>{
+    if(confirm(`Remover "${d.name}"?`)){db.drinks=db.drinks.filter(x=>x.id!==id);saveDB();goBack();}
+  };
+  showScreen('detail');
+}
+function attachPhoto(e) {
+  const file=e.target.files[0];if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const d=db.drinks.find(x=>x.id===activeId);if(!d) return;
+    d.photo=ev.target.result;saveDB();
+    const hero=document.getElementById('d-hero');
+    hero.querySelectorAll('.hphoto').forEach(e=>e.remove());
+    document.getElementById('d-emoji').style.display='none';
+    const img=document.createElement('img');img.src=d.photo;img.className='hphoto';
+    hero.insertBefore(img,hero.firstChild);
+  };
+  r.readAsDataURL(file);e.target.value='';
+}
+
+/* ════════════ ADD DRINK ════════════ */
+let newIngs=[],selMethod=null,selCat=null;
+function setupAdd(){
+  newIngs=[];selMethod=null;selCat=currentCat;
+  ['a-name','a-ing','a-qty','a-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('a-ing-list').innerHTML='';
+  document.getElementById('a-cats').innerHTML=db.cats.map(c=>
+    `<div class="chip${c.id===selCat?' on':''}" onclick="pickCat(this,'${c.id}')">${c.emoji} ${c.name}</div>`).join('');
+  document.getElementById('a-methods').innerHTML=db.methods.map(m=>
+    `<div class="chip" onclick="pickMethod(this,'${m.replace(/'/g,"&#39;")}')">${m}</div>`).join('');
+  document.getElementById('ing-dl').innerHTML=db.ings.map(i=>`<option value="${i}">`).join('');
+}
+function pickCat(el,id){document.querySelectorAll('#a-cats .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');selCat=id;}
+function pickMethod(el,m){document.querySelectorAll('#a-methods .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');selMethod=m;}
+function addIng(){
+  const ing=document.getElementById('a-ing').value.trim();
+  const qty=document.getElementById('a-qty').value.trim();
+  const unit=document.getElementById('a-unit').value;
+  if(!ing) return;
+  newIngs.push([qty?qty+unit:'—',ing]);
+  document.getElementById('a-ing').value='';document.getElementById('a-qty').value='';
+  if(!db.ings.includes(ing)){db.ings.push(ing);saveDB();}
+  renderNewIngs();
+}
+function renderNewIngs(){
+  document.getElementById('a-ing-list').innerHTML=newIngs.map((x,i)=>
+    `<div class="ing-added"><span class="iadd-qty">${x[0]}</span><span class="iadd-name">${x[1]}</span><button class="idel" onclick="removeIng(${i})">×</button></div>`).join('');
+}
+function removeIng(i){newIngs.splice(i,1);renderNewIngs();}
+const DRINK_EMOJIS=['🍹','🥂','🍾','🥃','🍸','🍊','🫧','🌿','🍋','🫙','🍓','🫒','🥤','🍮','🍇'];
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function saveDrink(){
+  const name=document.getElementById('a-name').value.trim();
+  if(!name){alert('Digite o nome.');return;}
+  if(!selCat){alert('Selecione a categoria.');return;}
+  if(!selMethod){alert('Selecione o método de preparo.');return;}
+  if(!newIngs.length){alert('Adicione pelo menos um ingrediente.');return;}
+  const notes=document.getElementById('a-notes').value.trim();
+  db.drinks.push({id:uid(),cat:selCat,name,method:selMethod,emoji:DRINK_EMOJIS[Math.floor(Math.random()*DRINK_EMOJIS.length)],ingredients:[...newIngs],notes:notes||null,photo:null});
+  saveDB();goBack();
+}
+
+/* ════════════ CATEGORY MANAGER ════════════ */
+function renderCatMgr(){
+  const el=document.getElementById('cat-mgr-list');
+  if(!db.cats.length){el.innerHTML='<div class="empty"><div class="eicon">📂</div><p>Nenhuma categoria ainda.</p></div>';return;}
+  el.innerHTML=db.cats.map((c,i)=>{
+    const n=db.drinks.filter(d=>d.cat===c.id).length;
+    return `<div class="cat-mgr-row">
+      <div class="cat-mgr-thumb" style="${catBgStyle(c)}">
+        ${c.image?'':c.emoji}
+        ${c.image?`<img src="${c.image}" alt="">`:''}
+      </div>
+      <div class="cat-mgr-info">
+        <div class="cat-mgr-name">${c.name}</div>
+        <div class="cat-mgr-sub">${n} item${n!==1?'s':''}</div>
+      </div>
+      <div class="cat-mgr-actions">
+        <div class="mgr-btn" onclick="openCatEditor('${c.id}')">
+          <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <div class="mgr-btn danger" onclick="deleteCat('${c.id}')">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function deleteCat(id){
+  const n=db.drinks.filter(d=>d.cat===id).length;
+  const msg=n>0?`Esta categoria tem ${n} drink${n>1?'s':''} cadastrado${n>1?'s':''}. Ao remover, os drinks ficarão sem categoria. Continuar?`:'Remover esta categoria?';
+  if(confirm(msg)){
+    db.cats=db.cats.filter(c=>c.id!==id);
+    saveDB();renderCatMgr();renderHome();
+  }
+}
+
+/* ════════════ CATEGORY EDITOR ════════════ */
+let cedId=null, cedEmoji='🍸', cedColor=0, cedImage=null;
+function openCatEditor(id){
+  cedId=id;
+  const c = id ? db.cats.find(x=>x.id===id) : null;
+  cedEmoji  = c?.emoji  ?? '🍸';
+  cedColor  = c?.color  ?? 0;
+  cedImage  = c?.image  ?? null;
+  document.getElementById('ced-title').textContent  = c ? 'Editar Categoria' : 'Nova Categoria';
+  document.getElementById('ced-name').value         = c?.name ?? '';
+  document.getElementById('ced-prev-name').textContent = c?.name || 'Nome da categoria';
+  document.getElementById('ced-prev-emoji').textContent= cedEmoji;
+  updateCedPreview();
+  // emojis
+  document.getElementById('ced-emojis').innerHTML=CAT_EMOJIS.map(e=>
+    `<div class="ep-btn${e===cedEmoji?' on':''}" onclick="cedPickEmoji('${e}')">${e}</div>`).join('');
+  // cores
+  document.getElementById('ced-colors').innerHTML=CAT_COLORS.map((col,i)=>
+    `<div class="cp-btn${i===cedColor?' on':''}" style="background:${col.bg}" onclick="cedPickColor(${i})"></div>`).join('');
+  // imagem
+  renderCedImg();
+  document.getElementById('cat-editor-modal').classList.add('open');
+}
+function closeCatEditor(){
+  document.getElementById('cat-editor-modal').classList.remove('open');
+}
+function cedPickEmoji(e){
+  cedEmoji=e;
+  document.querySelectorAll('#ced-emojis .ep-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelector(`#ced-emojis .ep-btn[onclick="cedPickEmoji('${e}')"]`)?.classList.add('on');
+  document.getElementById('ced-prev-emoji').textContent=e;
+}
+function cedPickColor(i){
+  cedColor=i; cedImage=null;
+  document.querySelectorAll('#ced-colors .cp-btn').forEach((b,j)=>b.classList.toggle('on',j===i));
+  renderCedImg();
+  updateCedPreview();
+}
+function renderCedImg(){
+  const wrap=document.getElementById('ced-img-wrap');
+  if(cedImage){
+    wrap.innerHTML=`<img class="img-preview" src="${cedImage}" alt="">
+      <div class="remove-img-btn" onclick="removeCedImg()">Remover imagem</div>`;
+  } else {
+    wrap.innerHTML=`<label class="img-upload-area" for="cat-img-file">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <p>Toque para escolher uma foto<br><span style="font-size:11px;color:var(--txt3);">A imagem substitui a cor de fundo</span></p>
+    </label>`;
+  }
+}
+function removeCedImg(){cedImage=null;renderCedImg();updateCedPreview();}
+function handleCatImage(e){
+  const file=e.target.files[0];if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{cedImage=ev.target.result;renderCedImg();updateCedPreview();};
+  r.readAsDataURL(file);e.target.value='';
+}
+function updateCedPreview(){
+  const bg=document.getElementById('ced-prev-bg');
+  if(cedImage){
+    bg.style.backgroundImage=`url('${cedImage}')`;
+    bg.style.background='';
+  } else {
+    bg.style.backgroundImage='';
+    bg.style.background=CAT_COLORS[cedColor].bg;
+  }
+}
+function saveCatEditor(){
+  const name=document.getElementById('ced-name').value.trim();
+  if(!name){alert('Digite o nome da categoria.');return;}
+  if(cedId){
+    const c=db.cats.find(x=>x.id===cedId);
+    if(c){c.name=name;c.emoji=cedEmoji;c.color=cedColor;c.image=cedImage;}
+  } else {
+    const newId='cat_'+uid();
+    db.cats.push({id:newId,name,emoji:cedEmoji,color:cedColor,image:cedImage});
+  }
+  saveDB();
+  closeCatEditor();
+  renderHome();
+  if(current==='catmgr') renderCatMgr();
+  updateCounts();
+}
+
+/* ════════════ MÉTODOS ════════════ */
+function openMethods(){renderMethods();document.getElementById('new-meth').value='';document.getElementById('m-modal').classList.add('open');}
+function renderMethods(){
+  document.getElementById('m-list').innerHTML=db.methods.map((m,i)=>
+    `<div class="meth-row"><span>${m}</span><button class="meth-del" onclick="delMethod(${i})">×</button></div>`).join('');
+  updateCounts();
+}
+function delMethod(i){db.methods.splice(i,1);saveDB();renderMethods();}
+function addMethod(){
+  const v=document.getElementById('new-meth').value.trim();if(!v||db.methods.includes(v)) return;
+  db.methods.push(v);saveDB();document.getElementById('new-meth').value='';renderMethods();
+}
+
+/* ════════════ CONFIGS ════════════ */
+function updateCounts(){
+  document.getElementById('cfg-m').textContent=db.methods.length;
+  document.getElementById('cfg-cats').textContent=db.cats.length;
+  document.getElementById('cfg-summary').innerHTML=db.cats.map(c=>{
+    const n=db.drinks.filter(d=>d.cat===c.id).length;
+    return `<div class="cfg-row" style="cursor:default;">
+      <div class="cfg-ico" style="background:none;font-size:22px;">${c.emoji}</div>
+      <div class="cfg-txt"><div class="cfg-title">${c.name}</div></div>
+      <span class="cfg-badge">${n}</span>
+    </div>`;
+  }).join('');
+}
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='portobar-backup.json';a.click();
+}
+function clearAll(){
+  if(confirm('Remover todos os drinks? Isso não pode ser desfeito.')){db.drinks=[];saveDB();renderHome();}
+}
+
+/* ════════════ TECLADO ════════════ */
+document.getElementById('a-ing').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addIng();}});
+document.getElementById('new-meth').addEventListener('keydown',e=>{if(e.key==='Enter') addMethod();});
+
+/* ════════════ BOOT ════════════ */
+renderHome();updateCounts();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+setTimeout(()=>document.getElementById('splash').classList.add('hide'),1400);
+</script>
+</body>
+</html>
